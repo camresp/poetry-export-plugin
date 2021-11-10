@@ -67,7 +67,8 @@ class Exporter:
         if fmt not in self.ACCEPTED_FORMATS:
             raise ValueError(f"Invalid export format: {fmt}")
 
-        getattr(self, "_export_{}".format(fmt.replace(".", "_")))(cwd, output)
+        fmt_slug = fmt.replace(".", "_").replace('-', '_')
+        getattr(self, f"_export_{fmt_slug}")(cwd, output)
 
     def _build_packages_for_export(self) -> List:
         from cleo.io.null_io import NullIO
@@ -106,12 +107,13 @@ class Exporter:
 
         ops = solver.solve().calculate_operations()
         packages = sorted([op.package for op in ops], key=lambda package: package.name)
-        return packages
+        return root, packages
 
     def _export_grouped_requirements_json(self, cwd: Path, output: Union["IO", str]) -> None:
         import json
 
         dependency_items = []
+        root, packages = self._build_packages_for_export()
 
         name_to_pkg = { p.name: p for p in packages }
 
@@ -205,7 +207,7 @@ class Exporter:
                             h, " \\\n" if i < len(hashes) - 1 else ""
                         )
 
-            entry['groups'] = list(grps_for_pkg[package.name])
+            entry['groups'] = list(groups_for_pkg[package.name])
             entry['req_entry'] = req_txt_line
             dependency_items.append(entry)
 
@@ -217,7 +219,7 @@ class Exporter:
         content = ""
         dependency_lines = set()
 
-        solved_packages = self._build_packages_for_export()
+        root, solved_packages = self._build_packages_for_export()
 
         for dependency_package in self._poetry.locker.get_project_dependency_packages(
             project_requires=root.all_requires,
