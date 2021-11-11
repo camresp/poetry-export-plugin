@@ -32,6 +32,7 @@ class Exporter:
         self._extras: Optional[List[str]] = None
         self._with_hashes: bool = True
         self._with_credentials: bool = False
+        self._with_markers: bool = True
 
     def without_groups(self, groups: List[str]) -> "Exporter":
         self._without_groups = groups
@@ -60,6 +61,11 @@ class Exporter:
 
     def with_credentials(self, with_credentials: bool = True) -> "Exporter":
         self._with_credentials = with_credentials
+
+        return self
+
+    def with_markers(self, with_markers: bool = True) -> 'Exporter':
+        self._with_markers = with_markers
 
         return self
 
@@ -175,7 +181,7 @@ class Exporter:
             if not is_direct_remote_reference:
                 if ";" in requirement:
                     markers = requirement.split(";", 1)[1].strip()
-                    if markers:
+                    if markers and self._with_markers:
                         entry['markers'] = markers
                         req_txt_line += f"; {markers}"
 
@@ -254,7 +260,7 @@ class Exporter:
             if not is_direct_remote_reference:
                 if ";" in requirement:
                     markers = requirement.split(";", 1)[1].strip()
-                    if markers:
+                    if markers and self._with_markers:
                         line += f"; {markers}"
 
             if (

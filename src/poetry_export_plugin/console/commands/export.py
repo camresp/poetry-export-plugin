@@ -13,7 +13,7 @@ class ExportCommand(Command):
         option(
             "format",
             "f",
-            "Format to export to. Currently, only requirements.txt is supported.",
+            f"Format to export to. Currently, \"{', '.join(Exporter.ACCEPTED_FORMATS)}\" are supported.",
             flag=False,
             default=Exporter.FORMAT_REQUIREMENTS_TXT,
         ),
@@ -54,6 +54,7 @@ class ExportCommand(Command):
             multiple=True,
         ),
         option("with-credentials", None, "Include credentials for extra indices."),
+        option("without-markers", None, "Exclude sys_path/python version marker constraints."),
     ]
 
     def handle(self) -> None:
@@ -130,4 +131,5 @@ class ExportCommand(Command):
         exporter.with_extras(self.option("extras"))
         exporter.with_hashes(not self.option("without-hashes"))
         exporter.with_credentials(self.option("with-credentials"))
+        exporter.with_markers(not self.option('without-markers'))
         exporter.export(fmt, self.poetry.file.parent, output or self.io)
