@@ -20,7 +20,6 @@ if TYPE_CHECKING:
 
     from poetry.poetry import Poetry
 
-
 class JSONExporter:
     """
     Exporter class to export a lock file to json formats.
@@ -39,11 +38,11 @@ class JSONExporter:
         self._with_hashes = True
         self._with_credentials = False
         self._with_urls = True
-        self._without_groups = False
-        self._with_groups = False
         self._with_markers = False
+
         self._extras: bool | list[str] | None = []
         self._groups: Iterable[str] = [MAIN_GROUP]
+        self._all_groups = {MAIN_GROUP} | set(self._poetry.pyproject.poetry_config.get('group', {}).keys())
 
     @classmethod
     def is_format_supported(cls, fmt: str) -> bool:
@@ -96,25 +95,9 @@ class JSONExporter:
         from poetry.puzzle.solver import Solver
         from poetry.repositories.pool import Pool
         from poetry.repositories.repository import Repository
+        # import ipdb; ipdb.set_trace()
 
-
-        if self._without_groups or self._with_groups or self._groups:
-            if self._with_groups:
-                # Default dependencies and opted-in optional dependencies
-                root = self._poetry.package.with_dependency_groups(self._groups)
-            elif self._without_groups:
-                # Default dependencies without selected groups
-                root = self._poetry.package.without_dependency_groups(
-                    self._without_groups
-                )
-            else:
-                # Only selected groups
-                root = self._poetry.package.with_dependency_groups(
-                    self._groups, only=True
-                )
-        else:
-            root = self._poetry.package.with_dependency_groups(["default"], only=True)
-
+        root = self._poetry.package.with_dependency_groups(list(self._groups), only=True)
         locked_repository = self._poetry.locker.locked_repository()
 
         pool = Pool(ignore_repository_names=True)
