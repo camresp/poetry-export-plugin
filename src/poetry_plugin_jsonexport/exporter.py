@@ -21,19 +21,17 @@ if TYPE_CHECKING:
     from poetry.poetry import Poetry
 
 
-class Exporter:
+class JSONExporter:
     """
-    Exporter class to export a lock file to alternative formats.
+    Exporter class to export a lock file to json formats.
     """
 
-    FORMAT_REQUIREMENTS_TXT = "requirements.txt"
-    FORMAT_GROUPS_JSON = 'grouped-requirements.json'
+    FORMAT_JSON = 'grouped-requirements.json'
 
     ALLOWED_HASH_ALGORITHMS = ("sha256", "sha384", "sha512")
 
     EXPORT_METHODS = {
-        FORMAT_REQUIREMENTS_TXT: "_export_requirements_txt",
-        FORMAT_GROUPS_JSON: "_export_grouped_requirements_json",
+        FORMAT_JSON: "_export_grouped_requirements_json",
     }
 
     def __init__(self, poetry: Poetry) -> None:
@@ -41,6 +39,9 @@ class Exporter:
         self._with_hashes = True
         self._with_credentials = False
         self._with_urls = True
+        self._without_groups = False
+        self._with_groups = False
+        self._with_markers = False
         self._extras: bool | list[str] | None = []
         self._groups: Iterable[str] = [MAIN_GROUP]
 
@@ -50,6 +51,11 @@ class Exporter:
 
     def with_extras(self, extras: bool | list[str] | None) -> Exporter:
         self._extras = extras
+
+        return self
+
+    def with_markers(self, with_markers: bool = True) -> Exporter:
+        self._with_markers = with_markers
 
         return self
 
@@ -79,6 +85,45 @@ class Exporter:
 
         getattr(self, self.EXPORT_METHODS[fmt])(cwd, output)
 
+    def _build_packages_for_export(self) -> List:
+        from cleo.io.null_io import NullIO
+        from poetry.core.packages.utils.utils import path_to_url
+        from poetry.puzzle.solver import Solver
+        from poetry.repositories.pool import Pool
+        from poetry.repositories.repository import Repository
+
+
+        if self._without_groups or self._with_groups or self._groups:
+            if self._with_groups:
+                # Default dependencies and opted-in optional dependencies
+                root = self._poetry.package.with_dependency_groups(self._groups)
+            elif self._without_groups:
+                # Default dependencies without selected groups
+                root = self._poetry.package.without_dependency_groups(
+                    self._without_groups
+                )
+            else:
+                # Only selected groups
+                root = self._poetry.package.with_dependency_groups(
+                    self._groups, only=True
+                )
+        else:
+            root = self._poetry.package.with_dependency_groups(["default"], only=True)
+
+        locked_repository = self._poetry.locker.locked_repository()
+
+        pool = Pool(ignore_repository_names=True)
+        pool.add_repository(locked_repository)
+
+        solver = Solver(root, pool, Repository(), locked_repository, NullIO())
+        # Everything is resolved at this point, so we no longer need
+        # to load deferred dependencies (i.e. VCS, URL and path dependencies)
+        solver.provider.load_deferred(False)
+
+        ops = solver.solve().calculate_operations()
+        packages = sorted([op.package for op in ops], key=lambda package: package.name)
+        return root, packages
+
     def _export_grouped_requirements_json(self, cwd: Path, output: IO | str) -> None:
 
         import json
@@ -91,6 +136,7 @@ class Exporter:
         def walk_deps(dep):
             pkg = name_to_pkg[dep.name]
             yield pkg
+            # breakpoint()
             for subdep in pkg.all_requires:
                 yield from walk_deps(subdep)
 
@@ -105,11 +151,16 @@ class Exporter:
                 groups_for_pkg.setdefault(p.name, set()).update(dep.groups)
 
 
-        dependency_packages = list(self._poetry.locker.get_project_dependency_packages(
+        dependency_packages = self._poetry.locker.get_project_dependency_packages(
             project_requires=root.all_requires,
-            dev=True,
+            project_python_marker=root.python_marker,
             extras=self._extras,
-        ))
+        )
+        # dependency_packages = list(self._poetry.locker.get_project_dependency_packages(
+        #     project_requires=root.all_requires,
+        #     dev=True,
+        #     extras=self._extras,
+        # ))
 
         for dependency_package in dependency_packages:
 

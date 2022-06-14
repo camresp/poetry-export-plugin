@@ -1,13 +1,13 @@
 [tool.poetry]
-name = "poetry-plugin-export"
+name = "poetry-plugin-jsonexport"
 version = "1.2.4"
-description = "Poetry plugin to export the dependencies to various formats"
-authors = ["Sébastien Eustace <sebastien@eustace.io>"]
+description = "Poetry plugin to export dependency info in json format"
+authors = [ "Tom Feist-Hassan <tom.feist-hassan@camresp.com>" ]
 license = "MIT"
 readme = "README.md"
 
 packages = [
-    { include = "poetry_plugin_export", from = "src" }
+    { include = "poetry_plugin_jsonexport", from = "src" }
 ]
 
 include = [
@@ -16,7 +16,7 @@ include = [
 
 [tool.poetry.dependencies]
 python = "^3.7"
-poetry = "^1.2.0b1dev0"
+poetry = "^1.2.0b2"
 
 [tool.poetry.dev-dependencies]
 pre-commit = "^2.18"
@@ -26,7 +26,7 @@ poetry = {git = "https://github.com/python-poetry/poetry.git"}
 mypy = ">=0.950"
 
 [tool.poetry.plugins."poetry.application.plugin"]
-export = "poetry_plugin_export.plugins:ExportApplicationPlugin"
+export = "poetry_plugin_jsonexport.plugins:JSONExportApplicationPlugin"
 
 [tool.black]
 target-version = ['py37']
@@ -62,7 +62,7 @@ ignore_missing_imports = true
 # warning.
 [[tool.mypy.overrides]]
 module = [
-  'poetry_plugin_export',
+  'poetry_plugin_jsonexport',
 ]
 warn_unused_ignores = false
 

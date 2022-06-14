@@ -9,20 +9,20 @@ try:
 except ImportError:
     MAIN_GROUP = "default"
 
-from poetry_plugin_export.exporter import Exporter
+from poetry_plugin_jsonexport.exporter import JSONExporter
 
 
-class ExportCommand(InstallerCommand):
-    name = "export"
+class JSONExportCommand(InstallerCommand):
+    name = "export_json"
     description = "Exports the lock file to alternative formats."
 
     options = [
         option(
             "format",
             "f",
-            "Format to export to. Currently, only requirements.txt is supported.",
+            "Format to export to. Currently, only json is supported.",
             flag=False,
-            default=Exporter.FORMAT_REQUIREMENTS_TXT,
+            default=JSONExporter.FORMAT_JSON,
         ),
         option("output", "o", "The name of the output file.", flag=False),
         option("without-hashes", None, "Exclude hashes from the exported file."),
@@ -59,7 +59,7 @@ class ExportCommand(InstallerCommand):
     def handle(self) -> None:
         fmt = self.option("format")
 
-        if not Exporter.is_format_supported(fmt):
+        if not JSONExporter.is_format_supported(fmt):
             raise ValueError(f"Invalid export format: {fmt}")
 
         output = self.option("output")
@@ -87,7 +87,7 @@ class ExportCommand(InstallerCommand):
                 "</warning>"
             )
 
-        exporter = Exporter(self.poetry)
+        exporter = JSONExporter(self.poetry)
         exporter.only_groups(list(self.activated_groups))
         exporter.with_extras(self.option("extras"))
         exporter.with_hashes(not self.option("without-hashes"))
