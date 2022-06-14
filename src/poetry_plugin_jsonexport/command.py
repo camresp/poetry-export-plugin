@@ -45,6 +45,8 @@ class JSONExportCommand(InstallerCommand):
             multiple=True,
         ),
         option("with-credentials", None, "Include credentials for extra indices."),
+
+        option("without-markers", None, "Don't include markers in the export"),
     ]
 
     @property
@@ -93,4 +95,5 @@ class JSONExportCommand(InstallerCommand):
         exporter.with_hashes(not self.option("without-hashes"))
         exporter.with_credentials(self.option("with-credentials"))
         exporter.with_urls(not self.option("without-urls"))
+        exporter.with_markers(not self.option('without-markers'))
         exporter.export(fmt, self.poetry.file.parent, output or self.io)

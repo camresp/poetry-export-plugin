@@ -59,6 +59,11 @@ class JSONExporter:
 
         return self
 
+    def without_markers(self, without_markers: bool = True) -> Exporter:
+        self._with_markers = not without_markers
+
+        return self
+
     def only_groups(self, groups: Iterable[str]) -> Exporter:
         self._groups = groups
 
